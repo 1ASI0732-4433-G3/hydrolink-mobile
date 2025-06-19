@@ -5,7 +5,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import '../widgets/sensor_configuration.dart';
 import '../widgets/sensor_widget.dart';
 
-const String devicesEndpoint = 'https://groweasy.azurewebsites.net/api/v1/devices';
+const String devicesEndpoint = 'https://inherent-steffi-hydrolink-531626a5.koyeb.app/api/v1/devices';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});

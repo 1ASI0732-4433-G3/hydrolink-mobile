@@ -19,7 +19,7 @@ class _SignupScreenState extends State<SignupScreen> {
   final TextEditingController _lastNameController = TextEditingController();
 
   Future<void> _signup() async {
-    const String signupEndpoint = 'https://groweasy.azurewebsites.net/api/v1/auth/sign-up';
+    const String signupEndpoint = 'https://inherent-steffi-hydrolink-531626a5.koyeb.app/api/v1/auth/sign-up';
 
     // Verificar si las contraseñas coinciden
     if (_passwordController.text != _confirmPasswordController.text) {
@@ -33,7 +33,7 @@ class _SignupScreenState extends State<SignupScreen> {
       'lastName': _lastNameController.text,
       'username': _usernameController.text,
       'password': _passwordController.text,
-      'role': 'ADMIN', // Ajustar según sea necesario
+      'role': 'AMATEUR', // Ajustar según sea necesario
     };
 
     try {

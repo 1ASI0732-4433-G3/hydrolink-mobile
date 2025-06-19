@@ -21,7 +21,7 @@ class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
 
   Future<void> _login() async {
-    final url = Uri.parse('https://groweasy.azurewebsites.net/api/v1/auth/log-in');
+    final url = Uri.parse('https://inherent-steffi-hydrolink-531626a5.koyeb.app/api/v1/auth/log-in');
     final loginRequest = LoginRequest(
       username: _usernameController.text,
       password: _passwordController.text,

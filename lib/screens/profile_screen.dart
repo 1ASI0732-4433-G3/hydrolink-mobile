@@ -25,7 +25,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> fetchProfileData() async {
-    const String profileEndpoint = 'https://groweasy.azurewebsites.net/api/v1/users/';
+    const String profileEndpoint = 'https://inherent-steffi-hydrolink-531626a5.koyeb.app/api/v1/users/';
     try {
       // Obtener JWT y username desde SharedPreferences
       final prefs = await SharedPreferences.getInstance();

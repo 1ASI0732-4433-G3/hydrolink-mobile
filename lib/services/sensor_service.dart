@@ -4,7 +4,7 @@ import 'package:http/http.dart' as http;
 import '../model/sensor.dart';
 
 class SensorService {
-  static const String _sensorsEndpoint = 'https://groweasy.azurewebsites.net/api/v1/sensors';
+  static const String _sensorsEndpoint = 'https://inherent-steffi-hydrolink-531626a5.koyeb.app/api/v1/sensors';
 
   /// Obtiene la lista de sensores
   static Future<List<Sensor>> fetchSensors(String jwt) async {

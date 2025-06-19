@@ -50,7 +50,7 @@ class _SensorConfigurationDialogState extends State<SensorConfigurationDialog> {
 
   Future<void> fetchSensorData() async {
     final url = Uri.parse(
-        'https://groweasy.azurewebsites.net/api/v1/sensors/${widget.sensorId}');
+        'https://inherent-steffi-hydrolink-531626a5.koyeb.app/api/v1/sensors/${widget.sensorId}');
     try {
       final prefs = await SharedPreferences.getInstance();
       final jwt = prefs.getString('jwt');
@@ -99,7 +99,7 @@ class _SensorConfigurationDialogState extends State<SensorConfigurationDialog> {
 
   Future<void> updateSensorData() async {
     final url =
-    Uri.parse('https://groweasy.azurewebsites.net/api/v1/sensors/${widget.sensorId}');
+    Uri.parse('https://inherent-steffi-hydrolink-531626a5.koyeb.app/api/v1/sensors/${widget.sensorId}');
     final prefs = await SharedPreferences.getInstance();
     final jwt = prefs.getString('jwt');
 

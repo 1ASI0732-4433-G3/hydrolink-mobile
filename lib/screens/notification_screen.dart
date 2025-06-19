@@ -5,7 +5,7 @@ import '../widgets/notification_card.dart';
 
 class NotificationsScreen extends StatelessWidget {
   final String notificationsEndpoint =
-      'https://groweasy.azurewebsites.net/api/notifications';
+      'https://inherent-steffi-hydrolink-531626a5.koyeb.app/api/notifications';
 
   Future<List<Map<String, String>>> fetchNotifications() async {
     try {
