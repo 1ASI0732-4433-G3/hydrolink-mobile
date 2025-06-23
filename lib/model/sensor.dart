@@ -1,3 +1,5 @@
+import 'sensor_config.dart';
+
 class Sensor {
   final int id;
   final String type;
@@ -32,36 +34,17 @@ class Sensor {
       'config': config.toJson(),
     };
   }
+
 }
 
-class SensorConfig {
-  final int id;
-  final int min;
-  final int max;
-  final int threshold;
-
-  SensorConfig({
-    required this.id,
-    required this.min,
-    required this.max,
-    required this.threshold,
-  });
-
-  factory SensorConfig.fromJson(Map<String, dynamic> json) {
-    return SensorConfig(
-      id: json['id'],
-      min: json['min'],
-      max: json['max'],
-      threshold: json['threshold'],
-    );
-  }
-
-  Map<String, dynamic> toJson() {
+extension SensorUpdatePayload on Sensor {
+  Map<String, dynamic> toUpdatePayload() {
     return {
-      'id': id,
-      'min': min,
-      'max': max,
-      'threshold': threshold,
+      'min': config.min,
+      'max': config.max,
+      'threshold': config.threshold,
+      'type': type,
     };
   }
 }
+

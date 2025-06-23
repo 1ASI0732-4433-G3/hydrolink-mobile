@@ -1,70 +1,28 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
+import '../model/notification_model.dart';
+import '../services/notification_service.dart';
 import '../widgets/notification_card.dart';
 
 class NotificationsScreen extends StatelessWidget {
-  final String notificationsEndpoint =
-      'https://inherent-steffi-hydrolink-531626a5.koyeb.app/api/notifications';
+  const NotificationsScreen({super.key});
 
-  Future<List<Map<String, String>>> fetchNotifications() async {
+  Future<List<NotificationModel>> _loadNotifications(BuildContext context) async {
     try {
-      // Llamada al endpoint de notificaciones
-      final response = await http.get(Uri.parse(notificationsEndpoint));
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body) as List<dynamic>;
-        if (data.isNotEmpty) {
-          return data.map((notification) {
-            return {
-              'title': 'Notificación: ${notification['type']?.toString() ?? 'N/A'}',
-              'description': notification['message']?.toString() ?? 'N/A',
-              'timestamp': notification['timestamp']?.toString() ?? 'N/A',
-              'imagePath': 'assets/images/logo.png',
-            };
-          }).toList();
-        }
-      }
+      final service = NotificationService(context);
+      return await service.fetchNotifications();
     } catch (e) {
-      debugPrint('Error al conectar con el servidor: $e');
+      debugPrint('Error al cargar notificaciones: $e');
+
+      // Retorna notificaciones ficticias si ocurre un error
+      return [
+        NotificationModel(type: 'Temperatura', message: 'Cambio de temperatura detectado.', timestamp: DateTime.now().toString()),
+        NotificationModel(type: 'Humedad', message: 'Cambio de humedad detectado.', timestamp: DateTime.now().toString()),
+        NotificationModel(type: 'PH', message: 'Cambio de PH detectado.', timestamp: DateTime.now().toString()),
+        NotificationModel(type: 'Luminosidad', message: 'Cambio de luminosidad detectado.', timestamp: DateTime.now().toString()),
+        NotificationModel(type: 'Sistema', message: 'Actualización del sistema aplicada.', timestamp: DateTime.now().toString()),
+      ];
     }
-
-    // Si no hay datos, generar 5 notificaciones ficticias
-    return [
-      {
-        'title': 'Sensor de Temperatura',
-        'description': 'El sensor de temperatura detectó un cambio de valor.',
-        'timestamp': DateTime.now().toString(),
-        'imagePath': 'assets/images/logo.png',
-      },
-      {
-        'title': 'Sensor de Humedad',
-        'description': 'El sensor de humedad detectó un cambio de valor.',
-        'timestamp': DateTime.now().toString(),
-        'imagePath': 'assets/images/logo.png',
-      },
-      {
-        'title': 'Sensor de PH',
-        'description': 'El sensor de PH detectó un cambio de valor.',
-        'timestamp': DateTime.now().toString(),
-        'imagePath': 'assets/images/logo.png',
-      },
-      {
-        'title': 'Sensor de Luminosidad',
-        'description': 'El sensor de luminosidad detectó un cambio de valor.',
-        'timestamp': DateTime.now().toString(),
-        'imagePath': 'assets/images/logo.png',
-      },
-      {
-        'title': 'Actualización del sistema',
-        'description': 'Se implementó una nueva actualización en el sistema.',
-        'timestamp': DateTime.now().toString(),
-        'imagePath': 'assets/images/logo.png',
-      },
-    ];
   }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -75,17 +33,15 @@ class NotificationsScreen extends StatelessWidget {
         backgroundColor: Colors.white,
         centerTitle: true,
       ),
-      body: FutureBuilder<List<Map<String, String>>>(
-        future: fetchNotifications(),
+      body: FutureBuilder<List<NotificationModel>>(
+        future: _loadNotifications(context),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
 
           if (snapshot.hasError) {
-            return const Center(
-              child: Text('Error al cargar notificaciones'),
-            );
+            return const Center(child: Text('Error al cargar notificaciones'));
           }
 
           final notifications = snapshot.data ?? [];
@@ -95,11 +51,11 @@ class NotificationsScreen extends StatelessWidget {
             child: ListView.builder(
               itemCount: notifications.length,
               itemBuilder: (context, index) {
-                final notification = notifications[index];
+                final notif = notifications[index];
                 return NotificationCard(
-                  title: notification['title']!,
-                  description: notification['description']!,
-                  imagePath: notification['imagePath']!,
+                  title: 'Notificación: ${notif.type}',
+                  description: notif.message,
+                  imagePath: 'assets/images/logo.png',
                 );
               },
             ),

@@ -1,7 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:http/http.dart' as http;
+import '../model/user_model.dart';
+import '../services/user_service.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -11,11 +11,7 @@ class ProfileScreen extends StatefulWidget {
 }
 
 class _ProfileScreenState extends State<ProfileScreen> {
-  Map<String, String> profileData = {
-    'fullName': '',
-    'username': '',
-    'role': '',
-  };
+  UserModel? user;
   bool isLoading = true;
 
   @override
@@ -25,79 +21,34 @@ class _ProfileScreenState extends State<ProfileScreen> {
   }
 
   Future<void> fetchProfileData() async {
-    const String profileEndpoint = 'https://inherent-steffi-hydrolink-531626a5.koyeb.app/api/v1/users/';
     try {
-      // Obtener JWT y username desde SharedPreferences
       final prefs = await SharedPreferences.getInstance();
-      final jwt = prefs.getString('jwt');
       final username = prefs.getString('username');
 
-      if (jwt == null || username == null) {
-        showError('No se encontró el token JWT o el nombre de usuario.');
-        setState(() {
-          isLoading = false;
-        });
+      if (username == null) {
+        showError('No se encontró el nombre de usuario.');
+        setState(() => isLoading = false);
         return;
       }
 
-      // Construir la URL para el endpoint
-      final url = Uri.parse('$profileEndpoint$username');
-      print('URL: $url');
+      final userService = UserService(context);
+      final fetchedUser = await userService.getByUsername(username);
 
-      // Realizar la petición GET
-      final response = await http.get(
-        url,
-        headers: {
-          'Authorization': 'Bearer $jwt',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      print('Response: ${response.body}');
-
-      if (response.statusCode == 200) {
-        final data = json.decode(response.body);
-
-        if (data is Map) {
-          // Convertir el campo "role" de lista a string
-          final role = (data['role'] as List<dynamic>).join(', ');
-          setState(() {
-            profileData = {
-              'fullName': data['fullName'] ?? 'N/A',
-              'username': data['username'] ?? 'N/A',
-              'role': role, // Convertido a string
-            };
-            isLoading = false;
-          });
-        } else {
-          // Si no es un mapa, mostrar un error
-          showError('Respuesta inesperada del servidor.');
-          setState(() {
-            isLoading = false;
-          });
-        }
-      } else {
-        showError('Error al obtener los datos del perfil: ${response.statusCode}');
-        setState(() {
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      showError('Error al conectar con el servidor: $e');
       setState(() {
+        user = fetchedUser;
         isLoading = false;
       });
+    } catch (e) {
+      showError('Error al obtener el perfil: $e');
+      setState(() => isLoading = false);
     }
   }
 
   Future<void> logOut() async {
     try {
-      // Obtener SharedPreferences y eliminar el JWT
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove('jwt');
       await prefs.remove('username');
-
-      // Redirigir al login
       Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
     } catch (e) {
       showError('Error al cerrar sesión: $e');
@@ -119,6 +70,8 @@ class _ProfileScreenState extends State<ProfileScreen> {
       ),
       body: isLoading
           ? const Center(child: CircularProgressIndicator())
+          : user == null
+          ? const Center(child: Text('No se pudo cargar el perfil.'))
           : Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
@@ -136,7 +89,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             Text(
-              profileData['fullName'] ?? 'N/A',
+              user!.fullName,
               style: const TextStyle(fontSize: 18),
             ),
             const SizedBox(height: 16),
@@ -145,11 +98,18 @@ class _ProfileScreenState extends State<ProfileScreen> {
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
             Text(
-              profileData['username'] ?? 'N/A',
+              user!.username,
               style: const TextStyle(fontSize: 18),
             ),
             const SizedBox(height: 16),
-
+            const Text(
+              'Rol:',
+              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+            ),
+            Text(
+              user!.roleAsString,
+              style: const TextStyle(fontSize: 18),
+            ),
             const Spacer(),
             Center(
               child: ElevatedButton(

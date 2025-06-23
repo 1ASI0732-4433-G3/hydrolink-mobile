@@ -1,11 +1,11 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:provider/provider.dart';
+import '../model/device.dart';
+import '../model/sensor.dart';
+import '../services/device_service.dart';
 import '../widgets/sensor_configuration.dart';
 import '../widgets/sensor_widget.dart';
-
-const String devicesEndpoint = 'https://inherent-steffi-hydrolink-531626a5.koyeb.app/api/v1/devices';
+import '../providers/loading_provider.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -15,54 +15,31 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<dynamic> devices = [];
-  List<dynamic> sensors = [];
+  late DeviceService _deviceService;
+  List<Device> devices = [];
+  List<Sensor> sensors = [];
   String? selectedDeviceName;
-  bool isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    fetchDevices();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _deviceService = DeviceService(context);
+      fetchDevices();
+    });
   }
 
   Future<void> fetchDevices() async {
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jwt = prefs.getString('jwt');
-
-      if (jwt == null) {
-        showError('No se encontró el token JWT. Por favor, inicia sesión nuevamente.');
-        setState(() {
-          isLoading = false;
-        });
-        return;
-      }
-
-      final response = await http.get(
-        Uri.parse(devicesEndpoint),
-        headers: {
-          'Authorization': 'Bearer $jwt',
-          'Content-Type': 'application/json',
-        },
-      );
-
-      if (response.statusCode == 200) {
-        setState(() {
-          devices = json.decode(response.body);
-          isLoading = false;
-        });
-      } else {
-        showError('Error: ${response.statusCode}');
-        setState(() {
-          isLoading = false;
-        });
-      }
-    } catch (e) {
-      showError('Error: No se pudo conectar al servidor');
+      final result = await _deviceService.getAll();
+      debugPrint(result.map((d) => d.toJson()).toList().toString());
       setState(() {
-        isLoading = false;
+        devices = result;
       });
+    } catch (e) {
+      showError('Error al obtener dispositivos');
+    } finally {
+      debugPrint('Dispositivos obtenidos: ${devices.length}');
     }
   }
 
@@ -71,7 +48,7 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   String getSensorImage(String sensorType) {
-    switch (sensorType) {
+    switch (sensorType.toUpperCase()) {
       case 'TEMPERATURE':
         return 'assets/images/sensor_temperatura.png';
       case 'HUMIDITY':
@@ -83,15 +60,16 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void selectDevice(String deviceName, List<dynamic> deviceSensors) {
+  void selectDevice(Device device) {
     setState(() {
-      selectedDeviceName = deviceName;
-      sensors = deviceSensors;
+      selectedDeviceName = device.location;
+      sensors = device.sensors;
     });
   }
 
   @override
   Widget build(BuildContext context) {
+    final isLoading = Provider.of<LoadingProvider>(context).isLoading;
     return Scaffold(
       backgroundColor: Colors.white,
       appBar: AppBar(
@@ -128,12 +106,10 @@ class _HomeScreenState extends State<HomeScreen> {
             return Card(
               margin: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
               child: ListTile(
-                title: Text(device['location']),
-                subtitle: Text('MAC: ${device['macAddress']}'),
+                title: Text(device.location),
+                subtitle: Text('MAC: ${device.macAddress}'),
                 trailing: const Icon(Icons.chevron_right),
-                onTap: () {
-                  selectDevice(device['location'], device['sensors']);
-                },
+                onTap: () => selectDevice(device),
               ),
             );
           },
@@ -143,15 +119,15 @@ class _HomeScreenState extends State<HomeScreen> {
           itemBuilder: (context, index) {
             final sensor = sensors[index];
             return SensorWidget(
-              title: sensor['type'],
-              status: sensor['status'],
-              imagePath: getSensorImage(sensor['type']),
+              title: sensor.type,
+              status: sensor.status,
+              imagePath: getSensorImage(sensor.type),
               onTap: () {
                 showDialog(
                   context: context,
                   builder: (context) => SensorConfigurationDialog(
-                    sensorName: sensor['type'],
-                    sensorId: sensor['id'],
+                    sensorName: sensor.type,
+                    sensorId: sensor.id,
                   ),
                 );
               },

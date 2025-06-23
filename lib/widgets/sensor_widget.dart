@@ -6,7 +6,7 @@ class SensorWidget extends StatelessWidget {
   final String imagePath;
   final VoidCallback onTap;
 
-  SensorWidget({
+  const SensorWidget({super.key,
     required this.title,
     required this.status,
     required this.imagePath,

@@ -1,13 +1,9 @@
-import 'dart:convert';
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 import 'package:grow_easy_mobile_application/screens/main_screen.dart';
 import 'package:grow_easy_mobile_application/screens/signup_screen.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
-
 import '../model/login_request.dart';
-import '../model/login_response.dart';
+import '../services/auth_service.dart';
 
 class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
@@ -19,57 +15,28 @@ class LoginScreen extends StatefulWidget {
 class _LoginScreenState extends State<LoginScreen> {
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  final AuthService _authService = AuthService();
 
   Future<void> _login() async {
-    final url = Uri.parse('https://inherent-steffi-hydrolink-531626a5.koyeb.app/api/v1/auth/log-in');
     final loginRequest = LoginRequest(
       username: _usernameController.text,
       password: _passwordController.text,
     );
 
-    try {
-      final response = await http.post(
-        url,
-        headers: {'Content-Type': 'application/json'},
-        body: json.encode(loginRequest.toJson()),
+    final error = await _authService.login(loginRequest);
+
+    if (error == null) {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const MainScreen()),
       );
-
-      if (response.statusCode == 200) {
-        final jsonResponse = json.decode(response.body);
-        final loginResponse = LoginResponse.fromJson(jsonResponse);
-
-        if (loginResponse.status) {
-          // Guardar el JWT y el nombre de usuario localmente usando SharedPreferences
-          final prefs = await SharedPreferences.getInstance();
-          await prefs.setString('jwt', loginResponse.jwt);
-          await prefs.setString('username', _usernameController.text);
-
-          // Navegar a MainScreen si el login es exitoso
-          Navigator.pushReplacement(
-            context,
-            MaterialPageRoute(
-              builder: (BuildContext context) {
-                return const MainScreen();
-              },
-            ),
-          );
-        } else {
-          _showError(loginResponse.message);
-        }
-      } else {
-        final jsonResponse = json.decode(response.body);
-        final errorMessage = jsonResponse['message'] ?? 'Error: ${response.statusCode}';
-        _showError(errorMessage);
-      }
-    } catch (error) {
-      _showError('Error: No se pudo conectar al servidor');
+    } else {
+      _showError(error);
     }
   }
 
   void _showError(String message) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text(message)),
-    );
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(message)));
   }
 
   @override
@@ -83,19 +50,12 @@ class _LoginScreenState extends State<LoginScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
-                const Icon(
-                  Icons.account_circle_outlined,
-                  size: 90,
-                ),
+                const Icon(Icons.account_circle_outlined, size: 90),
                 const Text(
                   'Iniciar Sesión',
-                  style: TextStyle(
-                    fontSize: 30,
-                    fontWeight: FontWeight.bold,
-                  ),
+                  style: TextStyle(fontSize: 30, fontWeight: FontWeight.bold),
                 ),
-                const Divider(
-                    endIndent: 20, indent: 20, height: 60, thickness: 3),
+                const Divider(endIndent: 20, indent: 20, height: 60, thickness: 3),
                 TextField(
                   controller: _usernameController,
                   decoration: const InputDecoration(
@@ -114,32 +74,20 @@ class _LoginScreenState extends State<LoginScreen> {
                     hintText: 'Ingrese su contraseña',
                   ),
                 ),
-                const Divider(
-                    endIndent: 20, indent: 20, height: 60, thickness: 3),
+                const Divider(endIndent: 20, indent: 20, height: 60, thickness: 3),
                 RichText(
                   text: TextSpan(
                     text: '¿Aún no tienes una cuenta? ',
-                    style: const TextStyle(
-                      fontSize: 13,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.black,
-                    ),
+                    style: const TextStyle(fontSize: 13, fontWeight: FontWeight.bold, color: Colors.black),
                     children: <TextSpan>[
                       TextSpan(
                         text: 'Regístrate aquí!',
-                        style: const TextStyle(
-                          color: Colors.blue,
-                          decoration: TextDecoration.underline,
-                        ),
+                        style: const TextStyle(color: Colors.blue, decoration: TextDecoration.underline),
                         recognizer: TapGestureRecognizer()
                           ..onTap = () {
                             Navigator.push(
                               context,
-                              MaterialPageRoute(
-                                builder: (BuildContext context) {
-                                  return SignupScreen();
-                                },
-                              ),
+                              MaterialPageRoute(builder: (context) => const SignupScreen()),
                             );
                           },
                       ),
@@ -150,11 +98,8 @@ class _LoginScreenState extends State<LoginScreen> {
                 FilledButton(
                   onPressed: _login,
                   style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 50, vertical: 15),
-                    textStyle: const TextStyle(
-                      fontSize: 18,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 50, vertical: 15),
+                    textStyle: const TextStyle(fontSize: 18),
                   ),
                   child: const Text('Iniciar Sesión'),
                 ),
@@ -165,4 +110,5 @@ class _LoginScreenState extends State<LoginScreen> {
       ),
     );
   }
+
 }

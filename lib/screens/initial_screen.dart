@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:grow_easy_mobile_application/screens/login_screen.dart';
 
+import '../widgets/loader_overlay.dart';
+
 class InitialScreen extends StatelessWidget {
   const InitialScreen({super.key});
 
@@ -13,7 +15,7 @@ class InitialScreen extends StatelessWidget {
           context,
           MaterialPageRoute(
             builder: (BuildContext context) {
-              return const LoginScreen();
+              return const LoaderOverlay(child: LoginScreen());
             },
           ),
         );

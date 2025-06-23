@@ -1,10 +1,18 @@
 import 'package:flutter/material.dart';
+import 'package:provider/provider.dart';
 import 'package:grow_easy_mobile_application/screens/initial_screen.dart';
 import 'package:grow_easy_mobile_application/screens/login_screen.dart';
 import 'package:grow_easy_mobile_application/screens/profile_screen.dart';
+import 'package:grow_easy_mobile_application/providers/loading_provider.dart';
+import 'package:grow_easy_mobile_application/widgets/loader_overlay.dart'; // <-- asegúrate de importar esto
 
 void main() {
-  runApp(const MyApp());
+  runApp(
+    ChangeNotifierProvider(
+      create: (_) => LoadingProvider(),
+      child: const MyApp(),
+    ),
+  );
 }
 
 class MyApp extends StatelessWidget {
@@ -19,11 +27,11 @@ class MyApp extends StatelessWidget {
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.lightGreenAccent),
         useMaterial3: true,
       ),
-      initialRoute: '/initial', // Ruta inicial
+      initialRoute: '/initial',
       routes: {
-        '/initial': (context) => const InitialScreen(),
-        '/login': (context) => const LoginScreen(), // Ruta para la pantalla de login
-        '/profile': (context) => const ProfileScreen(), // Ruta para la pantalla de perfil
+        '/initial': (context) => const LoaderOverlay(child: InitialScreen()),
+        '/login': (context) => const LoaderOverlay(child: LoginScreen()),
+        '/profile': (context) => const LoaderOverlay(child: ProfileScreen()),
       },
     );
   }

@@ -1,7 +1,7 @@
-import 'dart:convert';
 import 'package:flutter/material.dart';
-import 'package:http/http.dart' as http;
-import 'package:shared_preferences/shared_preferences.dart';
+import '../model/sensor.dart';
+import '../model/sensor_config.dart';
+import '../services/sensor_service.dart';
 
 class SensorConfigurationDialog extends StatefulWidget {
   final String sensorName;
@@ -14,7 +14,7 @@ class SensorConfigurationDialog extends StatefulWidget {
   });
 
   @override
-  _SensorConfigurationDialogState createState() =>
+  State<SensorConfigurationDialog> createState() =>
       _SensorConfigurationDialogState();
 }
 
@@ -24,7 +24,9 @@ class _SensorConfigurationDialogState extends State<SensorConfigurationDialog> {
   bool isLoading = true;
 
   double rangeMin = 0;
-  double rangeMax = 50; // Default range
+  double rangeMax = 50;
+
+  late Sensor _currentSensor;
 
   @override
   void initState() {
@@ -45,93 +47,79 @@ class _SensorConfigurationDialogState extends State<SensorConfigurationDialog> {
       rangeMax = 100;
     }
     rangeValues = RangeValues(rangeMin, rangeMax);
-    thresholdValue = (rangeMax + rangeMin) / 2; // Default threshold
+    thresholdValue = (rangeMax + rangeMin) / 2;
   }
 
   Future<void> fetchSensorData() async {
-    final url = Uri.parse(
-        'https://inherent-steffi-hydrolink-531626a5.koyeb.app/api/v1/sensors/${widget.sensorId}');
     try {
-      final prefs = await SharedPreferences.getInstance();
-      final jwt = prefs.getString('jwt');
+      final sensorService = SensorService(context);
+      final sensor = await sensorService.getSensorById(widget.sensorId);
 
-      final response = await http.get(
-        url,
-        headers: {
-          'Authorization': 'Bearer $jwt',
-          'Content-Type': 'application/json',
-        },
-      );
+      double min = sensor.config.min.toDouble();
+      double max = sensor.config.max.toDouble();
+      double threshold = sensor.config.threshold.toDouble();
 
-      if (response.statusCode == 200) {
-        final sensorData = json.decode(response.body);
-
-        // Extract sensor configuration
-        double min = sensorData['config']['min'].toDouble();
-        double max = sensorData['config']['max'].toDouble();
-        double threshold = sensorData['config']['threshold'].toDouble();
-
-        // Validate and adjust values
-        if (min < rangeMin) min = rangeMin;
-        if (max > rangeMax) max = rangeMax;
-        if (min >= max) {
-          min = rangeMin;
-          max = rangeMax;
-        }
-        if (threshold < min) threshold = min;
-        if (threshold > max) threshold = max;
-
-        setState(() {
-          rangeValues = RangeValues(min, max);
-          thresholdValue = threshold;
-          isLoading = false;
-        });
-      } else {
-        throw Exception('Error al obtener los datos del sensor');
+      // Validación
+      if (min < rangeMin) min = rangeMin;
+      if (max > rangeMax) max = rangeMax;
+      if (min >= max) {
+        min = rangeMin;
+        max = rangeMax;
       }
+      if (threshold < min) threshold = min;
+      if (threshold > max) threshold = max;
+
+      if (!mounted) return; // Evita usar context si el widget fue desmontado
+
+      setState(() {
+        _currentSensor = sensor;
+        rangeValues = RangeValues(min, max);
+        thresholdValue = threshold;
+        isLoading = false;
+      });
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
-      );
-      Navigator.pop(context);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+        Navigator.pop(context);
+      }
     }
   }
 
   Future<void> updateSensorData() async {
-    final url =
-    Uri.parse('https://inherent-steffi-hydrolink-531626a5.koyeb.app/api/v1/sensors/${widget.sensorId}');
-    final prefs = await SharedPreferences.getInstance();
-    final jwt = prefs.getString('jwt');
-
-    final updatedConfig = {
-      'min': rangeValues.start,
-      'max': rangeValues.end,
-      'threshold': thresholdValue,
-      'type': widget.sensorName,
-    };
-
     try {
-      final response = await http.put(
-        url,
-        headers: {
-          'Authorization': 'Bearer $jwt',
-          'Content-Type': 'application/json',
-        },
-        body: json.encode(updatedConfig),
+      final sensorService = SensorService(context);
+
+      final updatedConfig = SensorConfig(
+        id: _currentSensor.config.id,
+        min: rangeValues.start.round().toDouble(),
+        max: rangeValues.end.round().toDouble(),
+        threshold: thresholdValue.round().toDouble(),
       );
 
-      if (response.statusCode == 200) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Configuración actualizada con éxito')),
-        );
-        Navigator.pop(context);
-      } else {
-        throw Exception('Error al actualizar los datos del sensor');
-      }
-    } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $e')),
+      final updatedSensor = Sensor(
+        id: _currentSensor.id,
+        type: _currentSensor.type,
+        status: _currentSensor.status,
+        deviceId: _currentSensor.deviceId,
+        config: updatedConfig,
       );
+
+      await sensorService.updateSensorById(updatedSensor.id, updatedSensor.toUpdatePayload());
+
+      if (!mounted) return;
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Configuración actualizada con éxito')),
+      );
+      Navigator.pop(context);
+    } catch (e) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Error: $e')),
+        );
+      }
     }
   }
 
@@ -169,7 +157,6 @@ class _SensorConfigurationDialogState extends State<SensorConfigurationDialog> {
               setState(() {
                 rangeValues = values;
 
-                // Adjust threshold if it goes out of the range
                 if (thresholdValue < rangeValues.start) {
                   thresholdValue = rangeValues.start;
                 } else if (thresholdValue > rangeValues.end) {
